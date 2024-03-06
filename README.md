@@ -1,1 +1,3 @@
 Remember to replace placeholder values like "YourAzureRegion", "YourAppServicePlanSKU", "YourAppServicePlanTier", "YourAppServicePlanName", "YourAppServiceName", "YourAppGatewayName", and others with actual values relevant to your setup.
+
+Replace placeholders like 'your-appservice-name-dev', 'your-appservice-name-qa', 'your-appservice-name-prod', 'YourAzureServiceConnection', etc., with actual values relevant to your Azure environment and application configuration.

@@ -1,0 +1,96 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  solution: '**/*.sln'
+  buildConfiguration: 'Release'
+  appServiceNameDev: 'your-appservice-name-dev'
+  appServiceNameQA: 'your-appservice-name-qa'
+  appServiceNameProd: 'your-appservice-name-prod'
+  environmentDev: 'Dev'
+  environmentQA: 'QA'
+  environmentProd: 'Production'
+
+stages:
+- stage: Build
+  displayName: 'Build stage'
+  jobs:
+  - job: Build
+    displayName: 'Build job'
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore NuGet packages'
+      inputs:
+        command: 'restore'
+        projects: '$(solution)'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Build the project'
+      inputs:
+        command: 'build'
+        projects: '$(solution)'
+        arguments: '--configuration $(buildConfiguration)'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish the project'
+      inputs:
+        command: 'publish'
+        publishWebProjects: true
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+
+- stage: Deploy
+  displayName: 'Deploy stage'
+  dependsOn: Build
+  jobs:
+  - job: DeployDev
+    displayName: 'Deploy to Dev'
+    environment: $(environmentDev)
+    steps:
+    - download: current
+      artifact: drop
+
+    - task: AzureRmWebAppDeployment@4
+      displayName: 'Azure App Service Deploy Dev'
+      inputs:
+        azureSubscription: 'YourAzureServiceConnection'
+        appType: 'webApp'
+        WebAppName: $(appServiceNameDev)
+        packageForLinux: '$(Pipeline.Workspace)/**/*.zip'
+
+  - job: DeployQA
+    displayName: 'Deploy to QA'
+    environment: $(environmentQA)
+    steps:
+    - download: current
+      artifact: drop
+
+    - task: AzureRmWebAppDeployment@4
+      displayName: 'Azure App Service Deploy QA'
+      inputs:
+        azureSubscription: 'YourAzureServiceConnection'
+        appType: 'webApp'
+        WebAppName: $(appServiceNameQA)
+        packageForLinux: '$(Pipeline.Workspace)/**/*.zip'
+
+  - job: DeployProd
+    displayName: 'Deploy to Production'
+    environment: $(environmentProd)
+    steps:
+    - download: current
+      artifact: drop
+
+    - task: AzureRmWebAppDeployment@4
+      displayName: 'Azure App Service Deploy Production'
+      inputs:
+        azureSubscription: 'YourAzureServiceConnection'
+        appType: 'webApp'
+        WebAppName: $(appServiceNameProd)
+        packageForLinux: '$(Pipeline.Workspace)/**/*.zip'
